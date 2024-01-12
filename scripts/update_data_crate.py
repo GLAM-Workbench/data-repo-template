@@ -7,7 +7,7 @@ import argparse
 from frictionless import describe, Resource
 from pathlib import Path
 import datetime
-from rocrate.rocrate import ROCrate
+from rocrate.rocrate import ROCrate, ContextEntity
 import os
 
 schema_props = {
@@ -69,10 +69,11 @@ def main(version):
         data_props.update({"contentSize": stats.st_size, "dateModified": date_modified})
 
         # Add/update schema
-        schema_name = check_schema(file_path)
-        data_props.update({"conformsTo": {"@id": str(schema_name)}})
-        schema_props["name"] = f"Frictionless Table Schema for {data_props['name']} dataset"
-        crate.add_file(str(schema_name), properties=schema_props)
+        if datafile["encodingFormat"] == "text/csv":
+            schema_name = check_schema(file_path)
+            data_props.update({"conformsTo": {"@id": str(schema_name)}})
+            schema_props["name"] = f"Frictionless Table Schema for {data_props['name']} dataset"
+            crate.add_file(str(schema_name), properties=schema_props)
 
         # Update CreateAction
         action = get_create_action(crate, str(file_path))
