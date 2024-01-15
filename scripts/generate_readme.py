@@ -27,14 +27,17 @@ md += "\n\n## Dataset summary\n"
 details = "\n\n## Dataset details"
 
 for datafile in crate.get_by_type(["File", "Dataset"]):
-    md += f"- [{datafile['name']}]({datafile['url']}) ({naturalsize(datafile['contentSize'])}, {datafile['encodingFormat']})\n"
+    format = datafile.get("encodingFormat")
+    if not format:
+        format = datafile["name"].split(".")[-1]
+    md += f"- [{datafile['name']}]({datafile['url']}) ({naturalsize(datafile['contentSize'])}, {format})\n"
     details += f"\n\n### [{datafile['name']}]({datafile['url']})\n\n"
     action = get_create_action(crate, datafile["@id"])
     nb = crate.get(action["instrument"]["@id"])
     stats = {
         "date harvested": datafile["dateModified"],
         "file size": naturalsize(datafile["contentSize"]),
-        "format": datafile['encodingFormat'],
+        "format": format,
         "created by": f"<a href='{nb['url']}'>{nb['name']}</a>"
     }
     if rows := datafile.get("size"):

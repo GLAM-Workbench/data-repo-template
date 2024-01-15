@@ -4,7 +4,7 @@
 # notebook repo.
 
 import argparse
-from frictionless import describe, Resource
+from frictionless import describe, Resource, Detector
 from pathlib import Path
 import datetime
 from rocrate.rocrate import ROCrate, ContextEntity
@@ -48,11 +48,12 @@ def check_schema(file_path):
         resource = Resource(file_path, schema=str(schema_name))
         report = resource.validate()
         if not report.valid:
-            print(f"Validation failed: {data_props['name']}")
-            print(report.error)
+            print(f"Validation failed: {file_path}")
+            print(report)
         #print(report)
     else:
-        schema = describe(file_path.name, type='schema')
+        detector = Detector(sample_size=1000)
+        schema = describe(file_path.name, type='schema', detector=detector)
         schema.to_json(schema_name)
     return schema_name
 
@@ -69,7 +70,7 @@ def main(version):
         data_props.update({"contentSize": stats.st_size, "dateModified": date_modified})
 
         # Add/update schema
-        if datafile["encodingFormat"] == "text/csv":
+        if datafile.get("encodingFormat") == "text/csv":
             schema_name = check_schema(file_path)
             data_props.update({"conformsTo": {"@id": str(schema_name)}})
             schema_props["name"] = f"Frictionless Table Schema for {data_props['name']} dataset"
