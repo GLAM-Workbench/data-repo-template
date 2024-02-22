@@ -60,25 +60,44 @@ def check_schema(file_path):
 def main(version):
     os.chdir(Path(__file__).resolve().parent.parent)
     crate = ROCrate("./")
-    for datafile in crate.get_by_type(["File", "Dataset"]):
-        data_props = datafile.properties()
-        file_path = Path(data_props["name"])
+    for datafile in crate.get_by_type("Dataset"):
+        # Ignore root object and external resources
+        if datafile.id != "./" and not datafile.id.startswith("http"):
+            data_props = datafile.properties()
+            file_path = Path(data_props["name"])
+            print(data_props)
+            # Update file stats
+            stats = file_path.stat()
+            date_modified = datetime.datetime.fromtimestamp(stats.st_mtime).strftime("%Y-%m-%d")
+            if file_path.is_dir():
+                size = len(list(file_path.glob("*")))
+                data_props.update({"dateModified": date_modified, "size": size})
+            else:
+                rows = 0
+                with file_path.open("r") as df:
+                    for line in df:
+                        rows += 1
+                data_props.update({"contentSize": stats.st_size, "dateModified": date_modified, "size": rows})
 
-        # Update file stats
-        stats = file_path.stat()
-        date_modified = datetime.datetime.fromtimestamp(stats.st_mtime).strftime("%Y-%m-%d")
-        data_props.update({"contentSize": stats.st_size, "dateModified": date_modified})
-
-        # Add/update schema
-        if datafile.get("encodingFormat") == "text/csv":
-            schema_name = check_schema(file_path)
-            data_props.update({"conformsTo": {"@id": str(schema_name)}})
-            schema_props["name"] = f"Frictionless Table Schema for {data_props['name']} dataset"
-            crate.add_file(str(schema_name), properties=schema_props)
+            # Add/update schema
+            if datafile.get("encodingFormat") == "text/csv":
+                schema_name = check_schema(file_path)
+                data_props.update({"conformsTo": {"@id": str(schema_name)}})
+                schema_props["name"] = f"Frictionless Table Schema for {data_props['name']} dataset"
+                crate.add_file(str(schema_name), properties=schema_props)
 
         # Update CreateAction
-        action = get_create_action(crate, str(file_path))
-        action.properties().update({"endDate": date_modified})
+        # action = get_create_action(crate, str(file_path))
+        # action.properties().update({"endDate": date_modified})
+    actions = crate.get_by_type("CreateAction")
+    for action in actions:
+        action_dates = []
+        props = action.properties()
+        for result in props["result"]:
+            result_file = crate.dereference(result["@id"])
+            action_dates.append(result_file.properties()["dateModified"])
+        latest_date = sorted(action_dates)[-1]
+        action.properties().update({"endDate": latest_date})
 
     # Update version
     if version:
@@ -90,6 +109,13 @@ def main(version):
             }
         )
         add_update_action(crate, version)
+    else:
+        crate.update_jsonld(
+            {
+                "@id": "./",
+                "datePublished": datetime.datetime.now().strftime("%Y-%m-%d"),
+            }
+        )
     crate.write("./")
 
 if __name__ == "__main__":
