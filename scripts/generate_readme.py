@@ -38,7 +38,7 @@ for datafile in crate.get_by_type("Dataset"):
                 "date harvested": datafile["dateModified"],
                 "number of files": f"{datafile['size']:,}",
                 "format": "directory",
-                "created by": f"<a href='{nb['url']}'>{nb['name']}</a>"
+                "created by": f"<a href='{nb['url']}'>{nb['name']}</a> ([documentation]({nb['mainEntityOfPage']['@id']}))"
             }
         else:
             format = datafile.get("encodingFormat")
@@ -49,7 +49,7 @@ for datafile in crate.get_by_type("Dataset"):
                 "date harvested": datafile["dateModified"],
                 "file size": naturalsize(datafile["contentSize"]),
                 "format": format,
-                "created by": f"<a href='{nb['url']}'>{nb['name']}</a>"
+                "created by": f"<a href='{nb['url']}'>{nb['name']}</a> ([documentation]({nb['mainEntityOfPage']['@id']}))"
             }
             if rows := datafile.get("size"):
                 stats["number of rows"] = rows

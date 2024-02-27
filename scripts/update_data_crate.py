@@ -60,6 +60,7 @@ def check_schema(file_path):
 def main(version):
     os.chdir(Path(__file__).resolve().parent.parent)
     crate = ROCrate("./")
+    repo_url = crate.get("./").properties()["url"]
     for datafile in crate.get_by_type("Dataset"):
         # Ignore root object and external resources
         if datafile.id != "./" and not datafile.id.startswith("http"):
@@ -84,6 +85,7 @@ def main(version):
                 schema_name = check_schema(file_path)
                 data_props.update({"conformsTo": {"@id": str(schema_name)}})
                 schema_props["name"] = f"Frictionless Table Schema for {data_props['name']} dataset"
+                schema_props["url"] = f"{repo_url.strip('/')}/raw/main/{schema_name}"
                 crate.add_file(str(schema_name), properties=schema_props)
 
         # Update CreateAction
