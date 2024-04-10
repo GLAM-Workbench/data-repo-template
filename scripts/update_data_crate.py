@@ -73,6 +73,8 @@ def main(version):
             if file_path.is_dir():
                 size = len(list(file_path.glob("*")))
                 data_props.update({"dateModified": date_modified, "size": size})
+            elif file_path.name.endswith((".zip", ".db")):
+                data_props.update({"contentSize": stats.st_size, "dateModified": date_modified})
             else:
                 rows = 0
                 with file_path.open("r") as df:
